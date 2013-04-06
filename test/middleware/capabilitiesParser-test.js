@@ -82,6 +82,41 @@ vows.describe('capabilitiesParser').addBatch({
         assert.isUndefined(stanza.capabilites);
       },
     },
+    
+    'when handling capabilities': {
+      topic: function(capabilitiesParser) {
+        var self = this;
+        var iq = new junction.XMLElement('iq', { from: 'romeo@example.net/orchard' });
+        var query = iq.c('query', { xmlns: 'http://jabber.org/protocol/disco#info',
+          node: 'http://example.com/client',
+          hash: 'sha-1',
+          ver: 'samplehash' });
+        
+        query.c('identity', { name: 'Unit Test Client' });
+        
+        query.c('feature', { 'var': 'http://www.google.com/xmpp/protocol/camera/v1' })
+          .up().c('feature', { 'var': 'http://jabber.org/protocol/muc' })
+
+        function next(err) {
+          self.callback(err, iq);
+        }
+        process.nextTick(function () {
+          capabilitiesParser(iq, next)
+        });
+      },
+      
+      'should parse raw features': function(err, stanza) {
+        assert.deepEqual(['http://www.google.com/xmpp/protocol/camera/v1', 'http://jabber.org/protocol/muc'], stanza.capabilities.rawFeatures);
+      },
+      
+      'should find known common feature': function (err, stanza) {
+        assert.equal(true, stanza.capabilities.features.muc);
+      },
+      
+      'should not find feature that is not set': function (err, stanza) {
+        assert.equal(false, stanza.capabilities.features.mood);
+      },
+    },
   },
 
 }).export(module);
